@@ -137,7 +137,7 @@
   </object>
  </objectgroup>
  <objectgroup id="8" name="objects">
-  <object id="6" name="player" gid="64" x="350.269" y="218.9" width="74" height="56"/>
+  <object id="6" name="player" gid="64" x="31.7541" y="1366.56" width="74" height="56"/>
   <object id="14" name="door" gid="84" x="496.933" y="253.848" width="82" height="98"/>
   <object id="15" name="window" gid="73" x="374.802" y="159.563" width="64" height="64"/>
  </objectgroup>
