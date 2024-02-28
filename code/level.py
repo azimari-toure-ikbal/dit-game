@@ -4,19 +4,20 @@ from player import Player
 from groups import AllSprites
 
 class Level:
-    def __init__(self, tmx_map, level_frames, game_data):
+    def __init__(self, tmx_map, level_frames, audio_files, game_data, change_stage):
         self.display_surface = pygame.display.get_surface()
         self.game_data = game_data
+        self.change_stage = change_stage
 
         # Level data
         self.level_width = tmx_map.width * TILE_SIZE
         self.level_height = tmx_map.height * TILE_SIZE
         tmx_level_properties = tmx_map.get_layer_by_name("data")[0].properties
+        self.level_unlock = tmx_level_properties["level_unlock"]
         if tmx_level_properties["bg"]:
             background_tile = level_frames["background_tiles"][tmx_level_properties["bg"]]
         else:
             background_tile = None
-
 
         # Groups
         self.all_sprites = AllSprites(
@@ -30,15 +31,23 @@ class Level:
         self.collision_sprites = pygame.sprite.Group()
         self.damage_sprites = pygame.sprite.Group()
         self.item_sprites = pygame.sprite.Group()
-        self.setup(tmx_map, level_frames)
+        self.setup(tmx_map, level_frames, audio_files)
 
         # Frames
         self.particle_frames = level_frames["particle"]
 
+        # Sounds
+        self.coin_sound = audio_files["coin"]
+        self.coin_sound.set_volume(0.02)
+        self.damage_sound = audio_files["damage"]
+        self.damage_sound.set_volume(0.05)
+        self.level_finish_sound = audio_files["door"]
+        self.level_finish_sound.set_volume(0.05)
 
-    def setup(self, tmx_map, level_frames):
+
+    def setup(self, tmx_map, level_frames, audio_files):
         # Tiles
-        for layer in ["background", "terrain" , "platforms"]:
+        for layer in ["background", "terrain" , "platforms", "foreground"]:
             for x, y, surface in tmx_map.get_layer_by_name(layer).tiles():
                 groups = [self.all_sprites]
                 if layer == "terrain": groups.append(self.collision_sprites)
@@ -54,23 +63,21 @@ class Level:
         # Objects 
         for obj in tmx_map.get_layer_by_name("objects"):
             if obj.name == "player":
-                self.player = Player((obj.x, obj.y), self.all_sprites, self.collision_sprites, level_frames["player"], self.game_data)
+                self.player = Player((obj.x, obj.y), self.all_sprites, self.collision_sprites, level_frames["player"], self.game_data, audio_files["jump"])
             else:
                 if obj.name in ("door"):
                     self.level_finish = pygame.FRect((obj.x, obj.y), (obj.width, obj.height))
                     Sprite((obj.x, obj.y), obj.image, self.all_sprites, Z_LAYERS["background_details"])
                 else:
                     frames = level_frames[obj.name]
-                    AnimatedSprite((obj.x, obj.y), frames, self.all_sprites, Z_LAYERS["background_details"])
+                    if obj.name == "candle":
+                        AnimatedSprite((obj.x, obj.y), frames, self.all_sprites, Z_LAYERS["background_details"])
+                    else:
+                        AnimatedSprite((obj.x, obj.y), frames, self.all_sprites, Z_LAYERS["background_details"], 3)
 
         # Items
         for obj in tmx_map.get_layer_by_name("items"):
             Item(obj.name, (obj.x + TILE_SIZE / 2, obj.y + TILE_SIZE / 2), level_frames["items"][obj.name], (self.all_sprites, self.item_sprites), self.game_data)
-
-        # Enemies
-        for obj in tmx_map.get_layer_by_name("enemies"):
-            frames = level_frames[obj.name]
-            AnimatedSprite((obj.x, obj.y), frames, self.all_sprites)
 
         # Moving objects
         for obj in tmx_map.get_layer_by_name("moving"): 
@@ -100,7 +107,7 @@ class Level:
 
             else:
                 frames = level_frames[obj.name]
-                groups = (self.all_sprites, self.collision_sprites) if obj.properties["platform"] else (self.all_sprites, self.collision_sprites,   self.damage_sprites)
+                groups = (self.all_sprites, self.collision_sprites) if obj.properties["platform"] else (self.all_sprites, self.damage_sprites)
                 # groups = (self.all_sprites, self.damage_sprites, self.collision_sprites)
                 if obj.width > obj.height:
                     # Horizontal movement
@@ -132,7 +139,7 @@ class Level:
         for sprite in self.damage_sprites:
             if sprite.rect.colliderect(self.player.hitbox):
                 self.player.set_damage()
-
+                self.damage_sound.play()
 
     def item_collision(self):
         if self.item_sprites:
@@ -140,6 +147,7 @@ class Level:
             if item_sprites:
                 item_sprites[0].activate()
                 ParticleEffectSprite((item_sprites[0].rect.center), self.particle_frames, self.all_sprites)
+                self.coin_sound.play()
     
     def check_level_constraints(self):
         # Left border
@@ -152,14 +160,15 @@ class Level:
 
         # Bottom border
         if self.player.hitbox.bottom > self.level_height:
-            print("Death")
+            self.change_stage("overworld", -1)
             
         # Level success
         if self.player.hitbox.colliderect(self.level_finish):
-            print("Level complete")
+            self.level_finish_sound.play()
+            self.change_stage("overworld", self.level_unlock)
 
     def run(self, dt):
-        self.display_surface.fill("black")
+        # self.display_surface.fill("black")
         self.all_sprites.update(dt)
 
         self.player_hit()

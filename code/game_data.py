@@ -5,7 +5,7 @@ class GameData:
         self._health = 5
         self.ui.create_hearts(self.health)
 
-        self.unlocked_levels = 3
+        self.unlocked_levels = 0
         self.current_level = 0
 
     @property
@@ -19,8 +19,8 @@ class GameData:
     @score.setter
     def score(self, value):
         self._score = value
-        if self.score >= 500:
-            self.score -= 500
+        if self.score >= 150:
+            self.score -= 150
             self.health += 1
         self.ui.update_score(self.score)
 

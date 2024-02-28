@@ -3,7 +3,7 @@ from custom_timer import Timer
 from math import sin
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, groups, collision_sprites, frames, game_data):
+    def __init__(self, pos, groups, collision_sprites, frames, game_data, jump_sound):
         # Setup
         super().__init__(groups)
         self.z_index = Z_LAYERS["main"]
@@ -45,6 +45,10 @@ class Player(pygame.sprite.Sprite):
             "block_attack": Timer(500),
             "hit": Timer(600)
         }
+
+        # Audio
+        self.jump_sound = jump_sound
+        self.jump_sound.set_volume(0.01)
    
     def input(self):
         keys = pygame.key.get_pressed()
@@ -77,7 +81,6 @@ class Player(pygame.sprite.Sprite):
         self.hitbox.x += self.direction.x * self.speed * dt
         self.collision("horizontal")
 
-
         if not self.on_surface["floor"] and any((self.on_surface["left_wall"], self.on_surface["right_wall"])) and not self.timers["block_wall_slide"].active:
             self.direction.y = 0
             self.hitbox.y += self.gravity / 15 * dt
@@ -91,10 +94,12 @@ class Player(pygame.sprite.Sprite):
                 self.direction.y = -self.jump_height
                 self.timers["block_wall_slide"].activate()
                 self.hitbox.bottom -= 1
-            elif  any((self.on_surface["left_wall"], self.on_surface["right_wall"])) and not self.timers["block_wall_slide"].active:
+                self.jump_sound.play()
+            elif any((self.on_surface["left_wall"], self.on_surface["right_wall"])) and not self.timers["block_wall_slide"].active:
                 self.timers["wall_jump"].activate()
                 self.direction.y = -self.jump_height
                 self.direction.x = 1 if self.on_surface["left_wall"] else -1
+                self.jump_sound.play()
                 
             self.jump = False   
 
