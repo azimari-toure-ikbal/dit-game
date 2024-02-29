@@ -19,6 +19,8 @@ DIT-GAME-UP est un jeu de plateforme réalisé en Python avec Pygame, inspiré d
 Pour jouer, exécutez le fichier main.py situé dans le répertoire ./code/. Voici un exemple de commande pour lancer le jeu :
 
 ```bash
+pip3 install pygame-ce
+pip3 install pytmx
 python3 ./code/main.py
 ```
 
